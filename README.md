@@ -1,8 +1,14 @@
-# ICLR 2025 Paper Search
+# NeurIPS 2025 Paper Search
 
-A tool for extracting and semantically searching ICLR 2025 conference papers using SPECTER2 embeddings.
+A tool for extracting and semantically searching NeurIPS 2025 conference papers using SPECTER2 embeddings.
+
+Indexes **5,275 accepted papers** from NeurIPS 2025 using the OpenReview API v2.
+Runs a local web server on your laptop from which you can explore papers by topic.
 
 **Developed by [Dan MacKinlay](https://danmackinlay.name) | [CSIRO](https://www.csiro.au/) (Commonwealth Scientific and Industrial Research Organisation)**
+
+![](search.png)
+
 
 ## Features
 
@@ -14,65 +20,27 @@ A tool for extracting and semantically searching ICLR 2025 conference papers usi
 - Web interface for interactive searching
 - Command-line interface for batch processing
 
-## Installation
+## Installation / Quickstart
 
-1. Clone this repository:
+1. [Make sure uv is installed](https://github.com/astral-sh/uv)
+
+2. Clone this repository:
    ```bash
    git clone https://github.com/danmackinlay/openreview-finder.git
    cd openreview-finder
    ```
-
-2. Install the package using uv:
-   ```bash
-   # Make sure uv is installed (https://github.com/astral-sh/uv)
-   uv pip install -e .
-   ```
-
-3. You can run the tool in two ways:
+3. Index the papers (~10 minutes, one-time setup)
    ```bash
    uv run openreview-finder index
    ```
+4. Launch web interface
+   ```bash
+   uv run openreview-finder web
+   ```
 
-## Usage
+More options are available in the CLI help.
 
-### Extracting and Indexing Papers
-
-To extract papers from OpenReview and build the search index:
-
-```bash
-openreview-finder index
-```
-
-This process is robust against network outages - if interrupted, you can run the same command again to resume from the last checkpoint.
-
-Options:
-```
---batch-size INTEGER  Batch size for indexing (default: 50)
---force               Force reindexing even if data already exists
---help                Show this message and exit.
-```
-
-### Searching Papers
-
-To search for papers using the command line:
-
-```bash
-openreview-finder search "transformer architecture improvements"
-```
-
-Advanced search options:
-
-```
-Options:
-  -n, --num-results INTEGER     Number of results to return (default: 10)
-  -f, --format [text|json|csv]  Output format (default: text)
-  -o, --output TEXT             Output file path
-  -a, --author TEXT             Filter by author name (can use multiple times)
-  -k, --keyword TEXT            Filter by keyword (can use multiple times)
-  --help                        Show this message and exit.
-```
-
-Examples:
+##  Examples
 
 ```bash
 # Limit to top 5 results
@@ -91,45 +59,58 @@ uv run openreview-finder search "language models" --format json
 uv run openreview-finder search "diffusion models" --output results.csv
 ```
 
-### Web Interface
-
-To launch the web interface for interactive searching:
+### Example Output
 
 ```bash
-uv run openreview-finder web
-```
+$ uv run openreview-finder search "diffusion models for image generation" -n 3
 
-This opens a Gradio web interface in your browser with:
-- Search box for semantic queries
-- Slider to control number of results
-- Filters for authors and keywords
-- Interactive search history
-- Links to papers and discussions
+╒═════╤═════════════════════════════════════════════════════════════════════════════════════════╤══════════════════════════════════════════════════════════════════╤═════════╕
+│   # │ Title                                                                                   │ Authors                                                          │   Score │
+╞═════╪═════════════════════════════════════════════════════════════════════════════════════════╪══════════════════════════════════════════════════════════════════╪═════════╡
+│   1 │ Hierarchical Koopman Diffusion: Fast Generation with Interpretable Diffusion Trajectory │ ['Hanru Bai', 'Weiyang Ding', 'Difan Zou']                       │  0.8953 │
+├─────┼─────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼─────────┤
+│   2 │ Composition and Alignment of Diffusion Models using Constrained Learning                │ ['Shervin Khalafi', 'Ignacio Hounie', 'Dongsheng Ding', 'et al'] │  0.8851 │
+├─────┼─────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼─────────┤
+│   3 │ DiCo: Revitalizing ConvNets for Scalable and Efficient Diffusion Modeling               │ ['Yuang Ai', 'Qihang Fan', 'Xuefeng Hu', 'et al']                │  0.8816 │
+╘═════╧═════════════════════════════════════════════════════════════════════════════════════════╧══════════════════════════════════════════════════════════════════╧═════════╛```
+```
 
 ## Technical Details
 
+### NeurIPS 2025 Implementation
+
+This tool uses the **OpenReview API v2**
+
+- **Venue ID**: `NeurIPS.cc/2025/Conference`
+- **Paper Selection**: Uses `get_all_notes(content={'venueid': venue_id})` to retrieve only accepted papers
+- **Paper Count**: 5,275 accepted papers (poster, spotlight, and oral presentations)
+- **Publication Status**: Automatically filters out submissions, withdrawn papers, and desk-rejected papers
+
+Previous versions filtered based on invitation-based filtering, but this aligns better with OpenReview's current best practices.
+
 ### SPECTER2 Embeddings
 
-This tool uses the SPECTER2 model from the Allen Institute for AI, which is specifically designed for scientific papers. It creates embeddings that capture the semantic meaning of academic text better than general-purpose embedding models.
+This tool uses the [SPECTER2 model](https://huggingface.co/allenai/specter2) from the [Allen Institute for AI](https://allenai.org/), which is specifically designed for scientific papers. It creates embeddings that capture the semantic meaning of academic text better than general-purpose embedding models.
 
 The first time you run the indexing command, it will download the SPECTER2 model (about 440MB).
 
 ### Data Storage
 
-- Paper embeddings and search index are stored in `./chroma_db/`
+- Paper embeddings and search index are stored in `./chroma_db/neurips/`
 - API cache is stored in `./api_cache/` to reduce API calls
 - Logs are saved to `openreview_finder.log`
+- Database size: ~107MB for 5,275 papers with embeddings
 
 ## Requirements
 
 - Python 3.9+
 - Dependencies include:
+
   - openreview-py
   - transformers/torch
   - chromadb
   - adapters
   - gradio
-- GPU support is optional but recommended for faster embedding generation
 
 ## Contributing
 
@@ -145,6 +126,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [OpenReview](https://openreview.net/) for providing the API
 - [CSIRO](https://www.csiro.au/) for supporting this work
 
----
 
-Developed by [Dan MacKinlay](https://danmackinlay.name) | [CSIRO](https://www.csiro.au/) (Commonwealth Scientific and Industrial Research Organisation)

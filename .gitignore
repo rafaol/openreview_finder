@@ -179,3 +179,7 @@ chroma_db
 api_cache.db
 api_cache/*
 .DS_Store
+
+_plans/
+.vscode/
+uv.lock
